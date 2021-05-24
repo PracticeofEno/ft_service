@@ -37,7 +37,7 @@ kind: Service
 metadata:
   name: nginx-lb
   annotations:
-    metallb.universe.tf/allow-shared-ip: MY_MINI_IP
+    metallb.universe.tf/allow-shared-ip: 192.168.49.2
 spec:
   type: LoadBalancer
   ports:
@@ -55,4 +55,4 @@ spec:
   selector:
     app: nginx
     tier: app
-  loadBalancerIP: MY_MINI_IP
+  loadBalancerIP: 192.168.49.2

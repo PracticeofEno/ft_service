@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ftps
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ftps
+      tier: app
+  template:
+    metadata:
+      labels:
+        app: ftps
+        tier: app
+    spec:
+      containers:
+        - name: ftps
+          image: ftps
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 21
+            - containerPort: 20
+            - containerPort: 30000
+          volumeMounts:
+            - name: test-volume
+              mountPath: /home/sammy
+          livenessProbe:
+            exec:
+              command:
+                - ./liveness_check.sh
+            initialDelaySeconds: 120
+            periodSeconds: 3
+      volumes:
+        - name: test-volume
+          hostPath:
+            path: /myftps/
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ftps-lb
+  annotations:
+    metallb.universe.tf/allow-shared-ip: MY_MINI_IP
+spec:
+  type: LoadBalancer
+  ports:
+    - name: data
+      port: 20
+      targetPort: 20
+    - name: ftps
+      port: 21
+      targetPort: 21
+    - name: ftps-pasv
+      port: 30000
+      protocol: TCP
+      targetPort: 30000
+  selector:
+    app: ftps
+    tier: app
+  loadBalancerIP: MY_MINI_IP

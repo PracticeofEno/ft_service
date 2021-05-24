@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: phpmyadmin
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: phpmyadmin
+      tier: app
+  template:
+    metadata:
+      labels:
+        app: phpmyadmin
+        tier: app
+    spec:
+      containers:
+        - name: phpmyadmin
+          image: phpmyadmin
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 5000
+              protocol: TCP
+          livenessProbe:
+            exec:
+              command:
+                - ./liveness_check.sh
+            initialDelaySeconds: 120
+            periodSeconds: 3
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: phpmyadmin-lb
+  annotations:
+    metallb.universe.tf/allow-shared-ip: MY_MINI_IP
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 5000
+      targetPort: 5000
+      protocol: TCP
+  selector:
+    app: phpmyadmin
+    tier: app
+  loadBalancerIP: MY_MINI_IP

@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: influxdb
+spec:
+  selector:
+    matchLabels:
+      app: influxdb
+      tier: db
+  template:
+    metadata:
+      labels:
+        app: influxdb
+        tier: db
+    spec:
+      containers:
+        - name: influxdb
+          image: influxdb
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8086
+              protocol: TCP
+          volumeMounts:
+          - mountPath: "/var/lib/influxdb"
+            name: influxdb-pv-storage
+          livenessProbe:
+            exec:
+              command:
+                - ./liveness_check.sh
+            initialDelaySeconds: 120
+            periodSeconds: 3
+      volumes:
+        - name: influxdb-pv-storage
+          persistentVolumeClaim:
+            claimName: influxdb-pv-claim
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: influxdb
+spec:
+  ports:
+    - port: 8086
+      targetPort: 8086
+      protocol: TCP
+  selector:
+    app: influxdb
+    tier: db

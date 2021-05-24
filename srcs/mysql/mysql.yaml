@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql
+spec:
+  selector:
+    matchLabels:
+      app: mysql
+      tier: db
+  template:
+    metadata:
+      labels:
+        app: mysql
+        tier: db
+    spec:
+      containers:
+        - name: mysql
+          image: mysql
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 3306
+              protocol: TCP
+          volumeMounts:
+          - mountPath: "/var/lib/mysql"
+            name: mysql-pv-storage
+          livenessProbe:
+            exec:
+              command:
+                - ./liveness_check.sh
+            initialDelaySeconds: 120
+            periodSeconds: 3
+      volumes:
+        - name: mysql-pv-storage
+          persistentVolumeClaim:
+            claimName: mysql-pv-claim
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+spec:
+  ports:
+    - port: 3306
+      targetPort: 3306
+      protocol: TCP
+  selector:
+    app: mysql
+    tier: db

@@ -40,7 +40,7 @@ sleep 1
 docker build -t ftps ./srcs/ftps/.
 docker build -t grafana ./srcs/grafana/.
 docker build -t mysql ./srcs/mysql/.
-docker build -t influxDB ./srcs/influx/.
+docker build -t influxdb ./srcs/influx/.
 docker build -t nginx ./srcs/nginx/.
 docker build -t phpmyadmin ./srcs/phpmyadmin/.
 docker build -t wordpress ./srcs/wordpress/.

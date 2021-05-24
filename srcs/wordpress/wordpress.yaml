@@ -33,7 +33,7 @@ kind: Service
 metadata:
   name: wordpress
   annotations:
-    metallb.universe.tf/allow-shared-ip: 192.168.49.2
+    metallb.universe.tf/allow-shared-ip: MY_MINI_IP
 spec:
   type: LoadBalancer
   ports:
@@ -43,4 +43,4 @@ spec:
   selector:
     app: wordpress
     tier: app
-  loadBalancerIP: 192.168.49.2
+  loadBalancerIP: MY_MINI_IP

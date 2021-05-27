@@ -2,7 +2,7 @@
 apiVersion: 1
 
 providers:
- - name: 'dashboard'
+ - name: 'phpmyadmin'
    orgId: 1
    folder: ''
    type: file

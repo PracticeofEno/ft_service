@@ -10,6 +10,7 @@ clear
 mini_k=$(minikube ip)
 echo "my minikube ip is $mini_k, convert MY_MINI_IP to minikube ip"
 sleep 1
+sed -i "s/MY_MINI_IP/$mini_k/g" ./srcs/metallb-cm.yml
 sed -i "s/MY_MINI_IP/$mini_k/g" ./srcs/ftps/vsftpd.conf
 sed -i "s/MY_MINI_IP/$mini_k/g" ./srcs/ftps/ftps.yaml
 sed -i "s/MY_MINI_IP/$mini_k/g" ./srcs/grafana/grafana.yaml

@@ -68,6 +68,34 @@
 - 가장 작은 배포 단위  
 - 전체 클러스터에서 고유한 IP 할당  
 - 여러개의 컨테이너가 하나의 Pod에 속할 수 있음  
+![2021-04-07__12-49-44](https://user-images.githubusercontent.com/57505385/202782736-53e06340-d8a5-4ccc-968d-aafe7542c2c9.png)
+
+### 필수적인 요소
+- apiVersion : 오브젝트 버전
+- kind : 종류(Pod, ReplicaSet, Depolyment, Service 등등)
+- metadata : name과 label, annotation(주석)으로 구성
+- spec : 리소스 종류마다 다름
+
+#### example)
+```
+livenessProbe : 컨테이너가 살았는지 체크하는것
+	httpGet:
+		path:/not/exist
+		port: 8080
+	initialDelaySeconds : 시작하고 몇초뒤부터 검사할건가
+	timeoutSeconds: 타임아웃은? #default 1
+	periodSeconds : 몇초마다 실행할건가? #default 10
+	failureThreshold : 몇번 실패하면 실패한거로 죽은거로 생각하나? #default 3
+```
+</div>
+</details>
+<details>
+<summary>Replica Set(레플리카 셋)</summary>
+<div markdown="1">
+- 여러개의 Pod를 관리
+- 새로운 Pod는 Template를 참고하여 생성
+- 신규 Pod을 생성하거나 기존 Pod를 제거하여 원하는 수(Pod)를 유지
+- 실제로는 ReplicaSet이 아닌 그 위에 감싸는 Deployment를 주로 사용함
 
 ![2021-04-07__12-49-44](https://user-images.githubusercontent.com/57505385/202782736-53e06340-d8a5-4ccc-968d-aafe7542c2c9.png)
 </div>

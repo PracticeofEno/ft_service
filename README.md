@@ -155,7 +155,6 @@ awefawfe #comment
 | 정지 | minikube stop |
 | 삭제 | minikube delete |
 | ssh 접속 | minikube ssh | 
-(접속한뒤 docker ps 명령어로 쿠버네티스에 필요한 모듈들이 실행된걸 볼수있음)
 | ip 확인 | minikube ip |
 
 

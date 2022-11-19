@@ -1,4 +1,40 @@
 # ft_service
+
+## 목적
+- 다양한 서비스 인프라를 Kubernetes를 이용하여 구성
+- 다중 서비스 클러스터를 설정
+- 각 컨테이너는 성능상의 이유로 Alpine Linux를 사용하여 빌드
+- setup.sh에서 호출되는 Dockerfile이 작성되어 있어야함
+- 사용할 이미지는 직접 구축해야함. 이미 빌드된 이미지를 가져오거나 DockerHub 사용금지
+
+## 필수 구현부
+- Kubernetes 웹 대시 보드. 이렇게하면 클러스터를 관리하는 데 도움이됩니다.
+- 서비스의 외부 액세스를 관리하는 로드 밸런서.  클러스터의 유일한 진입 점입니다. 
+다음과 관련된 포트를 유지해야합니다.
+서비스 (Grafana의 경우 IP : 3000 등). Load Balancer는 단일 IP를 갖습니다.
+- MySQL 데이터베이스에서 작동하는 포트 5050에서 수신하는 WordPress 웹 사이트.
+두 서비스 모두 별도의 컨테이너에서 실행되어야합니다.
+WordPress 웹 사이트에는 여러 사용자와 관리자가 있습니다. 
+Wordpress에는 자체 nginx 서버가 필요합니다.
+로드 밸런서는이 서비스로 직접 리디렉션 할 수 있어야합니다.
+- phpMyAdmin, 포트 5000에서 수신 대기하고 MySQL 데이터베이스와 연결됩니다.
+PhpMyAdmin에는 자체 nginx 서버가 필요합니다.
+로드 밸런서는이 서비스로 직접 리디렉션 할 수 있어야합니다.
+- 포트 21에서 수신 대기하는 FTPS 서버.
+- InfluxDB 데이터베이스와 연결된 포트 3000에서 수신 대기하는 Grafana 플랫폼.
+Grafana는 모든 컨테이너를 모니터링합니다.
+서비스 당 하나의 대시 보드를 만들어야합니다.
+InfluxDB와 grafana는 두 개의 별개 컨테이너에 있습니다.
+- 모든 컨테이너는 구성 요소 중 하나가 충돌하거나 중지되는 경우 다시 시작해야합니다.
+- 서비스에 대한 각 리디렉션이로드 밸런서를 사용하여 수행되는지 확인하십시오.
+FTPS, Grafana, Wordpress, PhpMyAdmin 및 nginx의 종류는 "LoadBalancer"여야합니다.
+Influxdb 및 MySQL의 종류는 "ClusterIP"여야합니다. 다른 항목이있을 수 있지만 해당 항목은 없습니다.
+"NodePort"종류 일 수 있습니다.
+- 노드 포트 서비스 사용,
+Ingress Controller 객체 또는 kubectl port-forward 명령은 금지됩니다.
+Load Balancer는 클러스터의 유일한 진입 점이어야합니다.
+
+
 ## What is Kubernetes?
 - 쿠버네티스는 컨테이너 오케스트레이션
 - 컨테이너 오케스트레이션은 컨테이너의 배포, 관리, 확장, 네트워킹을 자동화합니다 (컨테이너 관리 도구입니다)
@@ -19,7 +55,7 @@
 <summary>쿠버네티스 아키텍처 (접기/펼치기)</summary>
 <div markdown="1">
 
-# Master의 구성
+## Master의 구성
 ### 1. 스케줄러
 - 새로 생성된 Pod를 감지하고 실행할 노드를 선택함
 - 노드의 현재 상태와 Pod의 요구사항을 체크함
@@ -47,7 +83,7 @@
 - TTL (Time to live), Watch같은 부가기능 제공
 - 백업은 필수
 
-# Node의 구성 
+## Node의 구성 
 ### 1. kubelet
 - 각 노드에서 실행됨.
 - Pod을 실행/중지하고 상태를 체크
@@ -61,42 +97,183 @@
 </div>
 </details>
 
-## 쿠버네티스 오브젝트
-<details>
-<summary>Pod(팟, 패드)</summary>
-<div markdown="1">
-- 가장 작은 배포 단위  
-- 전체 클러스터에서 고유한 IP 할당  
-- 여러개의 컨테이너가 하나의 Pod에 속할 수 있음  
-![2021-04-07__12-49-44](https://user-images.githubusercontent.com/57505385/202782736-53e06340-d8a5-4ccc-968d-aafe7542c2c9.png)
+## 쿠버네티스 오브젝트 구성과 설명
+- Pod
+- Replica Set
+- Deployment
+- Service
+- Wordload
+- Volume
+- ConfigMap
+- Secret 
+- 각 구성에 대한 설명과 정리 : https://enocent.notion.site/11d6bd9ec06d419c882092913a61e098
 
-### 필수적인 요소
-- apiVersion : 오브젝트 버전
-- kind : 종류(Pod, ReplicaSet, Depolyment, Service 등등)
-- metadata : name과 label, annotation(주석)으로 구성
-- spec : 리소스 종류마다 다름
+## 흐름
+1. 사용자가 Pod을 API Server에 요청
+2. API Server가 etcd에 Pod을 요청 (etcd에서 pod - 생성요청 으로 적어둠)
+3. Controller에서 새 Pod이 있는지 요청확인중 생성요청이 확인되면 API Server가 Controller에 Pod할당한 후 etcd에 'pod-할당요청' 으로 바꿈.
+4. Scheduler는 '새로운 Pod할당'이 있는지 체크하다 새 할당요청이 있었으면 'Pod를 node에 할당'
+5. API Server는 스케줄러의 요청을 들어준 후 etcd에 노드 할당되었다고 알림( etcd에서는 'pod- 노드할당 / 미실행' 으로 변경)
+6. Kubelet은 Node에 미실행 된 Pod이 있는지 체크하고 (API Server를 통해) 미실행된 Pod이 있으면 Pod 생성
+7. Kubelet이 Pod을 생성한 후 API Server는 etcd에 Pod생성이라고 알려줌 (etcd는 node 할당/실행중) 으로 바꿈.
 
-#### example)
+## yaml문법
+- key : value로 구성
+- 기본적으로 2칸 들여쓰기
+- 배열은 - 로 표시
+
+```c
+apiVersion: v1
+kind: Pod
+metadata: 
+  lable: kk
 ```
-livenessProbe : 컨테이너가 살았는지 체크하는것
-	httpGet:
-		path:/not/exist
-		port: 8080
-	initialDelaySeconds : 시작하고 몇초뒤부터 검사할건가
-	timeoutSeconds: 타임아웃은? #default 1
-	periodSeconds : 몇초마다 실행할건가? #default 10
-	failureThreshold : 몇번 실패하면 실패한거로 죽은거로 생각하나? #default 3
-```
-</div>
-</details>
-<details>
-<summary>Replica Set(레플리카 셋)</summary>
-<div markdown="1">
-- 여러개의 Pod를 관리
-- 새로운 Pod는 Template를 참고하여 생성
-- 신규 Pod을 생성하거나 기존 Pod를 제거하여 원하는 수(Pod)를 유지
-- 실제로는 ReplicaSet이 아닌 그 위에 감싸는 Deployment를 주로 사용함
 
-![2021-04-07__12-49-44](https://user-images.githubusercontent.com/57505385/202782736-53e06340-d8a5-4ccc-968d-aafe7542c2c9.png)
-</div>
-</details>
+- 주석은 #으로 표시
+
+```c
+#commnet
+awefawfe #comment
+```
+
+- 참 거짓은 true, false, yes, no
+- 숫자와 . 로 표현된것은 정수 또는 실수로 표현 가능
+- 문자열로만 쓰고싶은건 "1.2" 이렇게 가능
+- 줄바꿈 |
+- 줄바꿈 마지막줄 제외 |-
+- 줄바꿈 중간빈줄 제외 >
+
+- 문자열에 : 가 들어가는건 무조건 ""로 묶어줘야함.
+- 한 yaml에 여러개를 넣고싶을때 - - -를 사용함 (- 3개)
+
+## 쿠버네티스 명령어
+| - | 명령어 | 
+| --- | --- |
+| 버전확인 | minikube version |
+| 가상머신 시작 | minikube start —driver=docker | 
+| 특정 k8s버전 실행 | minikube start —kubernetes-version=v1.20.0 |
+| 상태 확인 | minikube status |
+| 정지 | minikube stop |
+| 삭제 | minikube delete |
+| ssh 접속 | minikube ssh | 
+(접속한뒤 docker ps 명령어로 쿠버네티스에 필요한 모듈들이 실행된걸 볼수있음)
+| ip 확인 | minikube ip |
+
+
+## kubectl 명령어
+※ kubectl api-resources → kubectl에서 사용할 수있는 명령어들이 쭉 나옴
+
+- apply : 원하는 상태를 적용. 보통 -f 옵션으로 파일과 함께 사용
+
+```c
+kubectl apply -f [파일명 또는 URL]
+URL을 입력시 해당 URL에서 파일을 내려받아서 적용함
+```
+
+- get : 리소스 목록을 보여줍니다
+
+```c
+kubectl get [TYPE]
+`,`를 이용해서 여러개 볼 수 있음.
+all = pod, service, deployment, replicaset, job을 보여줌 (대표적인 리소스)
+-o wide = 출력형식 
+-o yaml = yaml로 자세히
+-o json = json으로 자세히
+kubectl get pod --show-lables = lable도 표현
+```
+
+- describe : 리소스의 상태를 자세하게 보여줍니다.
+
+```c
+kubectl describe [type]/[name] 또는 [type] [name]
+특정 리소스의 상태가 궁금하거나 
+생성이 실패한 이유를 확인할 때 주로 사용
+event 탭이 중요
+```
+
+- delete : 리소스를 제거합니다
+
+```c
+kubectl delete [type]/[name] 또는 [type] [name]
+```
+
+- logs : 컨테이너의 로그를 봅니다.
+
+```c
+kubectl logs [pod_name]
+실시간 로그를 보기 -f 옵션
+하나의 Pod에 여러개의 컨테이너가 있다면 -c 옵션으로 컨테이너 지정
+```
+
+- exec : 컨테이너에 명령어를 전달합니다. 컨테이너에 접근할때 주로 사용합니다
+
+```c
+kubectl exec [-it] [pod_name] -- [command]
+
+컨테이너 접속
+: kubectl exec -it wordpress-5~~~ -- bash
+```
+
+- config : kubectl 설정을 관리합니다
+
+```c
+# 현재 컨텍스트 확인
+kubectl config current-context
+
+# 컨텍스트 설정
+kubectl config use-context minikube
+```
+
+- 특정  오브젝트 설명 보기 ( kubectl explain pod )
+
+echo "alias k=`kubectl` > ~./bashrc
+
+source ~./bashrc
+
+-------------------
+
+## livenessProbe (서비스가 살아있는지 체크)
+### 3가지 방법 제공
+```
+3가지 방식 제공
+1. Command probe
+
+livenessProbe:
+  exec:
+    command:
+    - pgrep
+    - vsftpd
+$? = 0 정상
+   = 1 비정상
+
+2. HTTP probe
+
+readinessProbe:
+  httpGet:
+    path: /readiness
+    port: 8080
+200 ~ 300 사이 응답 = 정상
+나머지 = 비정상
+
+3. TCP probe
+livenessProbe:
+  tcpSocket: 
+    port: 8080
+    initialDelaySeconds: 5
+    periodSeconds: 5
+연결성공 = 정상
+연결실패 = 비정상
+```
+- 참조 : https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
+------------------
+
+## 진행하면서 어려웠던(?), 잘 진행이 되지 않았던 부분
+### 1. Dockerfile 구성부분
+https://enocent.notion.site/ea2db116a61249a9aa9b61f0a3cdf2f8
+### 2. ftps 설정 
+https://enocent.notion.site/ftps-3d39a9a1108e46dc9f085f9df1c02a2e
+### 3. grafana provisioning
+참조 : https://ichi.pro/ko/ganpyeonhan-grafana-mich-docker-compose-seoljeong-229759174634515
+
+------------------------------
+

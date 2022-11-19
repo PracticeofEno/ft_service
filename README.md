@@ -266,7 +266,7 @@ livenessProbe:
 - 참조 : https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
 ------------------
 
-## 진행하면서 어려웠던(?), 잘 진행이 되지 않았던 부분
+## 진행하면서 어려웠던(?) 부분
 ### 1. Dockerfile 구성부분
 https://enocent.notion.site/ea2db116a61249a9aa9b61f0a3cdf2f8
 ### 2. ftps 설정 
